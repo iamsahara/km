@@ -3,36 +3,83 @@ import { withRole } from "@/lib/role";
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen bg-[#f6f1ea] text-[#1f1b16]">
-      <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top,_rgba(241,221,188,0.6),_transparent_55%),radial-gradient(circle_at_15%_30%,_rgba(203,227,215,0.7),_transparent_45%),radial-gradient(circle_at_85%_10%,_rgba(244,205,167,0.45),_transparent_55%)]" />
-      <main className="mx-auto flex min-h-screen w-full max-w-4xl items-center px-6 py-12">
-        <section className="w-full rounded-3xl border border-white/80 bg-white/85 p-8 shadow-[0_24px_60px_-40px_rgba(31,27,22,0.6)]">
-          <p className="text-xs uppercase tracking-[0.3em] text-[#8a6a49]">Mock Login</p>
-          <h1 className="mt-3 text-4xl font-semibold tracking-tight">Kitchryn Hub</h1>
-          <p className="mt-3 max-w-2xl text-sm text-[#5a4b3a]">
-            Responsive kitchen management for hotel operations. Choose a role to continue.
-          </p>
+    <div className="relative min-h-screen overflow-hidden bg-[#f5f1e9] text-[#1f1b16]">
+      <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_8%_8%,_rgba(244,206,159,0.52),_transparent_32%),radial-gradient(circle_at_94%_8%,_rgba(196,225,211,0.55),_transparent_40%),radial-gradient(circle_at_50%_95%,_rgba(245,218,184,0.55),_transparent_38%)]" />
+      <div className="absolute -left-24 top-10 -z-10 h-64 w-64 rounded-full bg-white/30 blur-3xl" />
+      <div className="absolute right-0 top-20 -z-10 h-72 w-72 rounded-full bg-white/25 blur-3xl" />
 
-          <div className="mt-8 grid gap-4 md:grid-cols-2">
-            <Link
-              href={withRole("/dashboard", "manager")}
-              className="rounded-2xl border border-[#e8d4b8] bg-[#fff7ec] p-5 transition hover:-translate-y-0.5 hover:shadow-md"
-            >
-              <p className="text-xs uppercase tracking-[0.3em] text-[#8a6a49]">Manager</p>
-              <p className="mt-2 text-xl font-semibold">Layla</p>
-              <p className="mt-2 text-sm text-[#5a4b3a]">Full dashboard, issues, and accountability views.</p>
-            </Link>
-            <Link
-              href={withRole("/dashboard", "staff")}
-              className="rounded-2xl border border-[#e8d4b8] bg-[#fff7ec] p-5 transition hover:-translate-y-0.5 hover:shadow-md"
-            >
-              <p className="text-xs uppercase tracking-[0.3em] text-[#8a6a49]">Staff</p>
-              <p className="mt-2 text-xl font-semibold">Nina</p>
-              <p className="mt-2 text-sm text-[#5a4b3a]">Tasks, reminders, inventory, and team messaging.</p>
-            </Link>
+      <main className="mx-auto flex min-h-screen w-full max-w-5xl items-center px-6 py-12">
+        <section className="km-panel km-animate-in w-full rounded-[2rem] p-6 md:p-8">
+          <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
+            <div>
+              <p className="text-xs uppercase tracking-[0.3em] text-[#8a6a49]">Mock Login</p>
+              <h1 className="mt-3 text-4xl font-semibold tracking-tight md:text-5xl">Kitchryn Hub</h1>
+              <p className="mt-4 max-w-xl text-sm leading-6 text-[#5a4b3a]">
+                Kitchen control made simple for every shift. Choose your role to open the right dashboard.
+              </p>
+
+              <div className="mt-6 flex flex-wrap gap-2">
+                <span className="rounded-full bg-[#f4e7d5] px-3 py-1 text-xs font-semibold uppercase tracking-wider text-[#724f28]">
+                  Responsive Web
+                </span>
+                <span className="rounded-full bg-[#dbeee7] px-3 py-1 text-xs font-semibold uppercase tracking-wider text-[#2f5f47]">
+                  In-App Alerts
+                </span>
+                <span className="rounded-full bg-[#f9ecdb] px-3 py-1 text-xs font-semibold uppercase tracking-wider text-[#724f28]">
+                  Order + Receiving
+                </span>
+              </div>
+            </div>
+
+            <div className="grid gap-4">
+              <RoleCard
+                href={withRole("/dashboard", "manager")}
+                title="Manager"
+                user="Layla"
+                hint="Full dashboard, accountability, and issue tracking"
+                accent="warm"
+              />
+              <RoleCard
+                href={withRole("/dashboard", "staff")}
+                title="Staff"
+                user="Nina"
+                hint="Tasks, receiving, reminders, and team communication"
+                accent="cool"
+              />
+            </div>
           </div>
         </section>
       </main>
     </div>
+  );
+}
+
+function RoleCard({
+  href,
+  title,
+  user,
+  hint,
+  accent,
+}: {
+  href: string;
+  title: string;
+  user: string;
+  hint: string;
+  accent: "warm" | "cool";
+}) {
+  const style =
+    accent === "warm"
+      ? "border-[#ebd6bb] bg-[#fff7ec] hover:bg-[#f8ecd9]"
+      : "border-[#cfe2da] bg-[#eff8f4] hover:bg-[#e2f1eb]";
+
+  return (
+    <Link
+      href={href}
+      className={`rounded-2xl border p-5 transition hover:-translate-y-0.5 hover:shadow-md ${style}`}
+    >
+      <p className="text-xs uppercase tracking-[0.28em] text-[#8a6a49]">{title}</p>
+      <p className="mt-2 text-2xl font-semibold tracking-tight">{user}</p>
+      <p className="mt-2 text-sm text-[#5a4b3a]">{hint}</p>
+    </Link>
   );
 }

@@ -4,6 +4,9 @@
   --background: #f6f1ea;
   --foreground: #1f1b16;
   --muted: #7a6349;
+  --surface: rgba(255, 255, 255, 0.82);
+  --surface-border: rgba(255, 255, 255, 0.7);
+  --shadow-soft: 0 24px 60px -40px rgba(31, 27, 22, 0.6);
 }
 
 @theme inline {
@@ -36,4 +39,27 @@ h6 {
 
 ::selection {
   background: rgba(232, 181, 108, 0.4);
+}
+
+@keyframes riseIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.km-animate-in {
+  animation: riseIn 340ms ease-out both;
+}
+
+.km-panel {
+  border: 1px solid var(--surface-border);
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+  backdrop-filter: blur(8px);
 }
