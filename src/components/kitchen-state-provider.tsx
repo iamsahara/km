@@ -32,11 +32,13 @@ export type CompletedTask = ChecklistTask & {
 export type SupplyOrder = {
   id: string;
   vendor: string;
+  deliveryDate: string;
   eta: string;
   phase: "order" | "receiving" | "received";
   items: Array<{
     id: string;
     name: string;
+    category: InventoryCategory;
     quantity: number;
     unit: string;
   }>;
@@ -72,7 +74,8 @@ export type InventoryLog = {
   unit: string;
   source: string;
   by: string;
-  at: string;
+  atDate: string;
+  atTime: string;
 };
 
 export type AppNotification = {
@@ -95,8 +98,14 @@ type KitchenStateValue = {
   notifyLowStock: (itemId: string) => void;
   addSupplyOrder: (input: {
     vendor: string;
+    deliveryDate: string;
     eta: string;
-    items: Array<{ name: string; quantity: number; unit: string }>;
+    items: Array<{
+      name: string;
+      category: InventoryCategory;
+      quantity: number;
+      unit: string;
+    }>;
   }) => void;
   toggleChecklistItem: (taskId: string, checklistItemId: string) => void;
   completeTask: (taskId: string, completedBy: string) => void;
@@ -288,8 +297,12 @@ const initialInventory: InventoryItem[] = [
   },
 ];
 
-function nowLabel() {
+function nowTimeLabel() {
   return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function todayIso() {
+  return new Date().toISOString().slice(0, 10);
 }
 
 function inferInventoryCategory(name: string): InventoryCategory {
@@ -403,21 +416,47 @@ const initialState: PersistedState = {
     {
       id: "PO-410",
       vendor: "Harbor Seafood",
-      eta: "Today 12:30 PM",
+      deliveryDate: todayIso(),
+      eta: "12:30 PM",
       phase: "order",
       items: [
-        { id: "IT-1", name: "Sea bass", quantity: 18, unit: "kg" },
-        { id: "IT-2", name: "Shrimp", quantity: 10, unit: "kg" },
+        {
+          id: "IT-1",
+          name: "Sea bass",
+          category: "Meat & Seafood",
+          quantity: 18,
+          unit: "kg",
+        },
+        {
+          id: "IT-2",
+          name: "Shrimp",
+          category: "Meat & Seafood",
+          quantity: 10,
+          unit: "kg",
+        },
       ],
     },
     {
       id: "PO-411",
       vendor: "Greenleaf Produce",
-      eta: "Today 2:00 PM",
+      deliveryDate: todayIso(),
+      eta: "2:00 PM",
       phase: "receiving",
       items: [
-        { id: "IT-3", name: "Basil", quantity: 6, unit: "kg" },
-        { id: "IT-4", name: "Tomato", quantity: 20, unit: "kg" },
+        {
+          id: "IT-3",
+          name: "Basil",
+          category: "Produce",
+          quantity: 6,
+          unit: "kg",
+        },
+        {
+          id: "IT-4",
+          name: "Tomato",
+          category: "Produce",
+          quantity: 20,
+          unit: "kg",
+        },
       ],
     },
   ],
@@ -454,6 +493,8 @@ function nextOrderItemId(orders: SupplyOrder[]): string {
 function normalizePersistedState(parsed: PersistedState): PersistedState {
   const parsedWithOptional = parsed as PersistedState & {
     notifications?: AppNotification[];
+    supplyOrders?: Array<SupplyOrder & { deliveryDate?: string }>;
+    inventoryLog?: Array<InventoryLog & { at?: string; atDate?: string; atTime?: string }>;
     inventory?: Array<
       InventoryItem & {
         category?: InventoryCategory;
@@ -462,9 +503,28 @@ function normalizePersistedState(parsed: PersistedState): PersistedState {
       }
     >;
   };
+  const legacySupplyOrders = (parsedWithOptional.supplyOrders ||
+    parsed.supplyOrders ||
+    []) as Array<SupplyOrder & { deliveryDate?: string }>;
+  const legacyInventoryLog = (parsedWithOptional.inventoryLog ||
+    parsed.inventoryLog ||
+    []) as Array<InventoryLog & { at?: string; atDate?: string; atTime?: string }>;
 
   return {
     ...parsed,
+    supplyOrders: legacySupplyOrders.map((order) => ({
+      ...order,
+      deliveryDate: order.deliveryDate ?? todayIso(),
+      items: order.items.map((item) => ({
+        ...item,
+        category: item.category ?? inferInventoryCategory(item.name),
+      })),
+    })),
+    inventoryLog: legacyInventoryLog.map((entry) => ({
+      ...entry,
+      atDate: entry.atDate ?? todayIso(),
+      atTime: entry.atTime ?? entry.at ?? nowTimeLabel(),
+    })),
     inventory: (parsedWithOptional.inventory || initialInventory).map((item) => {
       const category = item.category ?? inferInventoryCategory(item.name);
       return {
@@ -556,7 +616,7 @@ export function KitchenStateProvider({ children }: { children: ReactNode }) {
             id: `LOW-${item.id}-${Date.now()}`,
             title: `Low stock: ${item.name}`,
             detail: `${item.onHand} ${item.unit} remaining. Reorder level is ${item.reorderLevel} ${item.unit}.`,
-            time: nowLabel(),
+            time: nowTimeLabel(),
             level: "warning",
             kind: "low-stock",
             itemId: item.id,
@@ -570,15 +630,23 @@ export function KitchenStateProvider({ children }: { children: ReactNode }) {
   const addSupplyOrder = useCallback(
     (input: {
       vendor: string;
+      deliveryDate: string;
       eta: string;
-      items: Array<{ name: string; quantity: number; unit: string }>;
+      items: Array<{
+        name: string;
+        category: InventoryCategory;
+        quantity: number;
+        unit: string;
+      }>;
     }) => {
       setState((prev) => {
         const cleanVendor = input.vendor.trim();
+        const cleanDeliveryDate = input.deliveryDate.trim();
         const cleanEta = input.eta.trim();
         const cleanItems = input.items
           .map((item) => ({
             name: item.name.trim(),
+            category: item.category,
             quantity: Number(item.quantity),
             unit: item.unit.trim().toLowerCase() || "kg",
           }))
@@ -593,12 +661,14 @@ export function KitchenStateProvider({ children }: { children: ReactNode }) {
         const order: SupplyOrder = {
           id: nextOrderId(prev.supplyOrders),
           vendor: cleanVendor,
-          eta: cleanEta || "Today",
+          deliveryDate: cleanDeliveryDate || todayIso(),
+          eta: cleanEta || "TBD",
           phase: "order",
           items: cleanItems.map((item) => {
             const mapped = {
               id: `IT-${currentItemNumber}`,
               name: item.name,
+              category: item.category,
               quantity: item.quantity,
               unit: item.unit,
             };
@@ -625,7 +695,7 @@ export function KitchenStateProvider({ children }: { children: ReactNode }) {
       const completedTask: CompletedTask = {
         ...task,
         completedBy,
-        completedAt: nowLabel(),
+        completedAt: nowTimeLabel(),
       };
 
       return {
@@ -663,7 +733,7 @@ export function KitchenStateProvider({ children }: { children: ReactNode }) {
         if (existing) {
           existing.onHand += orderItem.quantity;
         } else {
-          const category = inferInventoryCategory(orderItem.name);
+          const category = orderItem.category ?? inferInventoryCategory(orderItem.name);
           nextInventory.push({
             id: `INV-${nextInventory.length + 1}`,
             name: orderItem.name,
@@ -683,7 +753,8 @@ export function KitchenStateProvider({ children }: { children: ReactNode }) {
           unit: orderItem.unit,
           source: order.id,
           by: receivedBy,
-          at: nowLabel(),
+          atDate: todayIso(),
+          atTime: nowTimeLabel(),
         });
       }
 
@@ -705,7 +776,7 @@ export function KitchenStateProvider({ children }: { children: ReactNode }) {
           id: `LOW-${item.id}-${Date.now()}`,
           title: `Low stock: ${item.name}`,
           detail: `${item.onHand} ${item.unit} remaining. Reorder level is ${item.reorderLevel} ${item.unit}.`,
-          time: nowLabel(),
+          time: nowTimeLabel(),
           level: "warning",
           kind: "low-stock",
           itemId: item.id,

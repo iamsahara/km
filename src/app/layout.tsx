@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Sora, Space_Grotesk } from "next/font/google";
 import { KitchenStateProvider } from "@/components/kitchen-state-provider";
 import "./globals.css";
@@ -19,6 +19,12 @@ export const metadata: Metadata = {
   title: "Kitchryn Hub",
   description:
     "Interactive kitchen management dashboard with tasks, reminders, and inventory watch.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

@@ -5,5 +5,9 @@ export function parseRole(value: string | null): Role {
 }
 
 export function withRole(path: string, role: Role): string {
-  return `${path}?role=${role}`;
+  const [pathname, queryString = ""] = path.split("?");
+  const params = new URLSearchParams(queryString);
+  params.set("role", role);
+  const nextQuery = params.toString();
+  return nextQuery ? `${pathname}?${nextQuery}` : pathname;
 }

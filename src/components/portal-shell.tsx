@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Children, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { useKitchenState } from "@/components/kitchen-state-provider";
@@ -11,7 +12,7 @@ type ShellProps = {
   role: Role;
   title: string;
   description: string;
-  children: ReactNode;
+  children?: ReactNode;
 };
 
 type NavItem = {
@@ -22,20 +23,28 @@ type NavItem = {
 };
 
 const navItems: NavItem[] = [
-  { href: "/dashboard", label: "Dashboard", short: "DB" },
-  { href: "/tasks", label: "Tasks", short: "TK" },
+  { href: "/orders", label: "Orders", short: "OR" },
+  { href: "/pending-orders", label: "Pending Orders", short: "PO" },
   { href: "/inventory", label: "Inventory", short: "IN" },
   { href: "/reminders", label: "Reminders", short: "RM" },
-  { href: "/messages", label: "Messages", short: "MS" },
-  { href: "/manager/issues", label: "Manager Issues", short: "MI", managerOnly: true },
+  { href: "/messages", label: "Chat", short: "CH" },
 ];
 
 export function PortalShell({ role, title, description, children }: ShellProps) {
   const pathname = usePathname();
   const { activeTasks, supplyOrders } = useKitchenState();
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const isDashboard = pathname === "/dashboard";
+  const hasMainContent = !(isDashboard && Children.count(children) === 0);
   const openCount = activeTasks.length;
   const pendingCount = supplyOrders.filter((order) => order.phase !== "received").length;
+  const visibleNavItems = navItems.filter((item) => !item.managerOnly || role === "manager");
+
+  const currentPageLabel = useMemo(() => {
+    if (pathname === "/dashboard") return "Home";
+    const current = visibleNavItems.find((item) => item.href === pathname);
+    return current?.label ?? "Page";
+  }, [pathname, visibleNavItems]);
 
   const theme =
     role === "manager"
@@ -61,21 +70,33 @@ export function PortalShell({ role, title, description, children }: ShellProps) 
         };
 
   return (
-    <div className={`relative min-h-screen overflow-x-clip text-[#1f1b16] ${theme.canvas}`}>
+    <div className={`relative min-h-screen overflow-x-hidden text-[#1f1b16] ${theme.canvas}`}>
       <div className={`absolute inset-0 -z-10 ${theme.gradient}`} />
       <div className="absolute -left-32 top-10 -z-10 h-64 w-64 rounded-full bg-white/35 blur-3xl" />
       <div className="absolute right-0 top-28 -z-10 h-72 w-72 rounded-full bg-white/25 blur-3xl" />
 
-      <header className="mx-auto w-full max-w-6xl px-6 pb-4 pt-8">
-        <div className="km-panel km-animate-in rounded-3xl p-5 lg:p-6">
+      <header className="mx-auto w-full max-w-6xl px-4 pb-3 pt-5 sm:px-6 sm:pb-4 sm:pt-8">
+        <div className="km-panel km-animate-in rounded-2xl p-4 sm:rounded-3xl sm:p-5 lg:p-6">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setIsMobileNavOpen(true)}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#1f1b16] bg-white text-[#1f1b16] lg:hidden"
+                  aria-label="Open menu"
+                >
+                  <span className="text-lg font-bold leading-none">≡</span>
+                </button>
                 <span className={`h-2.5 w-2.5 rounded-full ${theme.marker}`} />
-                <p className="text-xs uppercase tracking-[0.28em] text-[#8a6a49]">Kitchen Flow</p>
+                <p className="text-xs uppercase tracking-[0.2em] text-[#8a6a49] sm:tracking-[0.28em]">
+                  Kitchen Flow
+                </p>
               </div>
-              <h1 className="mt-2 text-3xl font-semibold tracking-tight">Kitchryn Hub</h1>
+              <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Kitchryn Hub</h1>
               <p className="mt-2 max-w-2xl text-sm text-[#5a4b3a]">{description}</p>
+              <p className="mt-2 inline-flex rounded-full bg-white/75 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-[#6f573b] sm:tracking-[0.2em]">
+                Current Page: {currentPageLabel}
+              </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <HeaderStat label="Open" value={openCount} tone="open" />
                 <HeaderStat label="Pending" value={pendingCount} tone="pending" />
@@ -97,46 +118,95 @@ export function PortalShell({ role, title, description, children }: ShellProps) 
         </div>
       </header>
 
-      <div className="mx-auto grid w-full max-w-6xl gap-6 px-6 pb-16 lg:grid-cols-[250px_1fr]">
-        <aside className="km-panel km-animate-in h-fit rounded-3xl p-3 lg:sticky lg:top-6">
+      <div
+        className={`mx-auto grid w-full max-w-6xl gap-4 px-4 pb-12 sm:gap-6 sm:px-6 sm:pb-16 ${
+          hasMainContent ? "lg:grid-cols-[250px_1fr]" : "lg:grid-cols-[250px]"
+        }`}
+      >
+        <aside className="hidden km-panel km-animate-in h-fit rounded-3xl p-3 lg:sticky lg:top-6 lg:block">
           <p className="mb-2 px-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-[#8a6a49]">
             Navigation
           </p>
           <nav className="grid gap-2">
-            {navItems
-              .filter((item) => !item.managerOnly || role === "manager")
-              .map((item) => {
+            {visibleNavItems.map((item) => {
+              const active = pathname === item.href;
+              return (
+                <Link
+                  key={item.href}
+                  href={withRole(item.href, role)}
+                  className={`group flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-semibold transition ${
+                    active ? theme.navActive : theme.navIdle
+                  }`}
+                >
+                  <span
+                    className={`inline-flex h-7 w-7 items-center justify-center rounded-lg text-[10px] font-bold tracking-widest ${
+                      active ? "bg-white/18" : "bg-white"
+                    }`}
+                  >
+                    {item.short}
+                  </span>
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+          </nav>
+        </aside>
+
+        {hasMainContent ? (
+          <main className="km-panel km-animate-in rounded-2xl p-4 sm:rounded-3xl sm:p-5 lg:p-6">
+            <div className={`mb-6 rounded-2xl px-4 py-3 ${theme.pageAccent}`}>
+              <h2 className="text-xl font-semibold tracking-tight sm:text-2xl">{title}</h2>
+              {!isDashboard ? <p className="mt-1 text-sm text-[#6b543a]">{description}</p> : null}
+            </div>
+            {children}
+          </main>
+        ) : null}
+      </div>
+
+      {isMobileNavOpen ? (
+        <div className="fixed inset-0 z-50 bg-[#f6f1ea] px-4 py-5 sm:px-6 sm:py-6 lg:hidden">
+          <div className="mx-auto flex h-full w-full max-w-6xl flex-col">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#8a6a49]">Navigation</p>
+              <button
+                onClick={() => setIsMobileNavOpen(false)}
+                className="rounded-lg border border-[#1f1b16] bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wider text-[#1f1b16]"
+              >
+                Close
+              </button>
+            </div>
+            <div className="mt-6 grid gap-3">
+              {visibleNavItems.map((item) => {
                 const active = pathname === item.href;
                 return (
                   <Link
                     key={item.href}
                     href={withRole(item.href, role)}
-                    className={`group flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-semibold transition ${
-                      active ? theme.navActive : theme.navIdle
+                    onClick={() => setIsMobileNavOpen(false)}
+                    className={`flex items-center justify-between rounded-2xl border px-4 py-4 text-base font-semibold ${
+                      active
+                        ? "border-[#1f1b16] bg-[#1f1b16] text-[#fef4e7]"
+                        : "border-[#e3cfb0] bg-white text-[#4f4335]"
                     }`}
                   >
-                    <span
-                      className={`inline-flex h-7 w-7 items-center justify-center rounded-lg text-[10px] font-bold tracking-widest ${
-                        active ? "bg-white/18" : "bg-white"
-                      }`}
-                    >
-                      {item.short}
-                    </span>
                     <span>{item.label}</span>
+                    <span className="text-lg leading-none">›</span>
                   </Link>
                 );
               })}
-          </nav>
-        </aside>
-
-        <main className="km-panel km-animate-in rounded-3xl p-5 lg:p-6">
-          <div className={`mb-6 rounded-2xl px-4 py-3 ${theme.pageAccent}`}>
-            <h2 className="text-2xl font-semibold tracking-tight">{title}</h2>
-            {!isDashboard ? <p className="mt-1 text-sm text-[#6b543a]">{description}</p> : null}
+            </div>
+            <div className="mt-auto">
+              <Link
+                href="/login"
+                onClick={() => setIsMobileNavOpen(false)}
+                className="block w-full rounded-xl bg-[#1f1b16] px-4 py-3 text-center text-sm font-semibold uppercase tracking-wider text-[#fef4e7]"
+              >
+                Sign Out
+              </Link>
+            </div>
           </div>
-          {children}
-        </main>
-      </div>
+        </div>
+      ) : null}
     </div>
   );
 }

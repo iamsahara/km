@@ -8,12 +8,12 @@ export default function LoginPage() {
       <div className="absolute -left-24 top-10 -z-10 h-64 w-64 rounded-full bg-white/30 blur-3xl" />
       <div className="absolute right-0 top-20 -z-10 h-72 w-72 rounded-full bg-white/25 blur-3xl" />
 
-      <main className="mx-auto flex min-h-screen w-full max-w-5xl items-center px-6 py-12">
-        <section className="km-panel km-animate-in w-full rounded-[2rem] p-6 md:p-8">
+      <main className="mx-auto flex min-h-screen w-full max-w-5xl items-center px-4 py-8 sm:px-6 sm:py-12">
+        <section className="km-panel km-animate-in w-full rounded-[1.6rem] p-5 sm:rounded-[2rem] sm:p-6 md:p-8">
           <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
             <div>
-              <p className="text-xs uppercase tracking-[0.3em] text-[#8a6a49]">Mock Login</p>
-              <h1 className="mt-3 text-4xl font-semibold tracking-tight md:text-5xl">Kitchryn Hub</h1>
+              <p className="text-xs uppercase tracking-[0.2em] text-[#8a6a49] sm:tracking-[0.3em]">Mock Login</p>
+              <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl">Kitchryn Hub</h1>
               <p className="mt-4 max-w-xl text-sm leading-6 text-[#5a4b3a]">
                 Kitchen control made simple for every shift. Choose your role to open the right dashboard.
               </p>
@@ -77,7 +77,7 @@ function RoleCard({
       href={href}
       className={`rounded-2xl border p-5 transition hover:-translate-y-0.5 hover:shadow-md ${style}`}
     >
-      <p className="text-xs uppercase tracking-[0.28em] text-[#8a6a49]">{title}</p>
+      <p className="text-xs uppercase tracking-[0.2em] text-[#8a6a49] sm:tracking-[0.28em]">{title}</p>
       <p className="mt-2 text-2xl font-semibold tracking-tight">{user}</p>
       <p className="mt-2 text-sm text-[#5a4b3a]">{hint}</p>
     </Link>
